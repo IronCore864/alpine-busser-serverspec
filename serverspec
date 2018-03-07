@@ -1,0 +1,41 @@
+#TEST_KITCHEN="1"; export TEST_KITCHEN
+
+BUSSER_ROOT="/opt/verifier"; export BUSSER_ROOT
+
+GEM_HOME="/opt/verifier/gems"; export GEM_HOME
+GEM_PATH="/opt/verifier/gems"; export GEM_PATH
+GEM_CACHE="/opt/verifier/gems/cache"; export GEM_CACHE
+
+ruby="/usr/local/bin/ruby"
+gem="/usr/local/bin/gem"
+
+mkdir -p /opt/chef/embedded/bin
+ln -s /usr/local/bin/ruby /opt/chef/embedded/bin/ruby
+ln -s /usr/local/bin/gem /opt/chef/embedded/bin/gem
+
+#version="busser"
+
+busser_gem_install_args="busser --no-rdoc --no-ri --no-format-executable -n /opt/verifier/bin --no-user-install"
+$gem install $busser_gem_install_args
+
+serverspec_gem_install_args="serverspec --no-rdoc --no-ri --no-format-executable -n /opt/verifier/bin --no-user-install"
+$gem install $serverspec_gem_install_args
+
+busser="/opt/verifier/bin/busser"
+plugins="busser-serverspec"
+
+if test ! -f "$BUSSER_ROOT/bin/busser"; then
+  $busser setup
+fi
+
+for plugin in $plugins; do
+  $gem list --no-versions | grep "^$plugin$" 2>&1 >/dev/null
+  if test $? -ne 0; then
+    echo "-----> Installing Busser plugin: $plugin"
+    $busser plugin install $plugin
+  else
+    echo "-----> Busser plugin detected: $plugin"
+  fi
+done
+
+chmod 777 $BUSSER_ROOT
